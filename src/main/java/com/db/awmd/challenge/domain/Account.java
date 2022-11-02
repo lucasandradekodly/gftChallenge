@@ -3,6 +3,7 @@ package com.db.awmd.challenge.domain;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
+import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import lombok.Data;
@@ -17,7 +18,7 @@ public class Account {
   private final String accountId;
 
   @NotNull
-  @Min(value = 0, message = "Initial balance must be positive.")
+  @DecimalMin(value = "0.0", inclusive = true, message = "Initial balance must be positive.")
   private BigDecimal balance;
 
   public Account(String accountId) {
