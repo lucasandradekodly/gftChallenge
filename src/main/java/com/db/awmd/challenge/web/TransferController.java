@@ -27,10 +27,10 @@ public class TransferController {
 
   @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Object> transfer(@RequestBody @Valid TransferDto transfer) {
-    log.info("Creating transfer from {} to {} in the amount of {}", transfer.getAccountFrom(), transfer.getAccountTo(), transfer.getAmount() );
+    log.info("Received request to create transfer from {} to {} in the amount of {}", transfer.getAccountFrom(), transfer.getAccountTo(), transfer.getAmount() );
     try {
       transferService.createTransfer(transfer);
-      return new ResponseEntity<>(null, HttpStatus.OK);
+      return new ResponseEntity<>(null, HttpStatus.CREATED);
     }
     catch (AccountNotFoundException e) {
       return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);

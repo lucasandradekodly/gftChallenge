@@ -26,6 +26,9 @@ public class TransferService {
     @Getter
     private final AccountsService accountsService;
 
+    @Getter
+    private final NotificationService notificationService;
+
     public void createTransfer(TransferDto transferDto) {
 
         if (transferDto.getAccountTo().equals(transferDto.getAccountFrom())) {
@@ -43,14 +46,17 @@ public class TransferService {
                 .build();
 
         transferRepository.createTransfer(transfer);
-        performTransfer(transfer);
+        log.info("Registered new transfer from {} to {} in the amount of {}, with the ID {}",
+                transfer.getAccountFrom(), transfer.getAccountTo(), transfer.getAmount(), transfer.getId() );
+
+        makeTransfer(transfer);
     }
 
-    public void performTransfer(Transfer transfer) {
+    public void makeTransfer(Transfer transfer) {
         synchronized (transfer.getAccountFrom()) {
             synchronized (transfer.getAccountTo()) {
                 try {
-                    transferRepository.performTransfer(transfer);
+                    transferRepository.executeTransfer(transfer);
                     log.info("Transfer with ID {} successful", transfer.getId());
                 } catch (Exception e) {
                     transfer.setState(TransferState.FAILED);
@@ -60,6 +66,12 @@ public class TransferService {
                 }
             }
         }
+
+        notificationService.notifyAboutTransfer(transfer.getAccountFrom(),
+                StringFormatter.format("Sent transfer to %s in the amount of %s", transfer.getAccountTo().getAccountId(), transfer.getAmount()).getValue());
+        notificationService.notifyAboutTransfer(transfer.getAccountTo(),
+                StringFormatter.format("Received transfer from %s in the amount of %s", transfer.getAccountFrom().getAccountId(), transfer.getAmount()).getValue());
+
     }
 
     private Account getAccount(String accountId){

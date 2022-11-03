@@ -17,7 +17,9 @@ public interface TransferRepository {
     /**
      * This should be a query that updates the balances of the accounts and the transfer status in the same transaction
      */
-    void performTransfer(Transfer transfer) throws SQLIntegrityConstraintViolationException;
+    void executeTransfer(Transfer transfer) throws SQLIntegrityConstraintViolationException;
 
     void save(Transfer transfer);
+
+    void clearTransfers();
 }
