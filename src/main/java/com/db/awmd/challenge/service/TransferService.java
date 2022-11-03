@@ -15,6 +15,10 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 @Service
 @AllArgsConstructor
 @Slf4j
@@ -28,6 +32,8 @@ public class TransferService {
 
     @Getter
     private final NotificationService notificationService;
+
+    private static final ReentrantLock ARBITRATOR = new ReentrantLock();
 
     public void createTransfer(TransferDto transferDto) {
 
@@ -53,8 +59,10 @@ public class TransferService {
     }
 
     public void makeTransfer(Transfer transfer) {
+        TransferService.ARBITRATOR.lock();
         synchronized (transfer.getAccountFrom()) {
             synchronized (transfer.getAccountTo()) {
+                TransferService.ARBITRATOR.unlock();
                 try {
                     transferRepository.executeTransfer(transfer);
                     log.info("Transfer with ID {} successful", transfer.getId());
@@ -72,6 +80,10 @@ public class TransferService {
         notificationService.notifyAboutTransfer(transfer.getAccountTo(),
                 StringFormatter.format("Received transfer from %s in the amount of %s", transfer.getAccountFrom().getAccountId(), transfer.getAmount()).getValue());
 
+    }
+
+    public List<Transfer> findPendingTransfers() {
+        return getTransferRepository().findByState(TransferState.PENDING);
     }
 
     private Account getAccount(String accountId){

@@ -233,6 +233,10 @@ public class TransferControllerTest {
     assertThat(account4.getBalance().doubleValue()).isEqualTo(110.0);
     assertThat(account5.getBalance().doubleValue()).isEqualTo(90.0);
     assertThat(account6.getBalance().doubleValue()).isEqualTo(110.0);
+
+    assertEquals(thread1.getState(), Thread.State.TERMINATED);
+    assertEquals(thread2.getState(), Thread.State.TERMINATED);
+    assertEquals(thread3.getState(), Thread.State.TERMINATED);
   }
 
   @Test
@@ -280,6 +284,73 @@ public class TransferControllerTest {
     Account account2 = accountsService.getAccount(ACCOUNT_ID2);
     assertThat(account1.getBalance().doubleValue()).isEqualTo(70.0);
     assertThat(account2.getBalance().doubleValue()).isEqualTo(130.0);
+
+    assertEquals(thread1.getState(), Thread.State.TERMINATED);
+    assertEquals(thread2.getState(), Thread.State.TERMINATED);
+    assertEquals(thread3.getState(), Thread.State.TERMINATED);
+  }
+
+  @Test
+  public void shouldBeAbleToMakeTransfersBackAndForwardBetweenTheSameAccounts_withoutDeadlocksAndWithinOneSecond() throws InterruptedException {
+
+    Runnable runnable1 = () -> {
+      try {
+        mockMvc.perform(post(URI).contentType(MediaType.APPLICATION_JSON)
+                .content(transferJson(ACCOUNT_ID1, ACCOUNT_ID2, 10))).andExpect(status().isCreated());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+    Thread thread1 = new Thread(runnable1);
+
+    Runnable runnable2 = () -> {
+      try {
+        mockMvc.perform(post(URI).contentType(MediaType.APPLICATION_JSON)
+                .content(transferJson(ACCOUNT_ID2, ACCOUNT_ID1, 10))).andExpect(status().isCreated());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+    Thread thread2 = new Thread(runnable2);
+
+    Runnable runnable3 = () -> {
+      try {
+        mockMvc.perform(post(URI).contentType(MediaType.APPLICATION_JSON)
+                .content(transferJson(ACCOUNT_ID1, ACCOUNT_ID2, 10))).andExpect(status().isCreated());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+    Thread thread3 = new Thread(runnable3);
+
+    Runnable runnable4 = () -> {
+      try {
+        mockMvc.perform(post(URI).contentType(MediaType.APPLICATION_JSON)
+                .content(transferJson(ACCOUNT_ID2, ACCOUNT_ID1, 10))).andExpect(status().isCreated());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+    Thread thread4 = new Thread(runnable4);
+
+    //act
+    thread1.start();
+    thread2.start();
+    thread3.start();
+    thread4.start();
+
+    //assert
+    Thread.sleep(1000);
+
+    Account account1 = accountsService.getAccount(ACCOUNT_ID1);
+    Account account2 = accountsService.getAccount(ACCOUNT_ID2);
+    assertThat(account1.getBalance().doubleValue()).isEqualTo(100.0);
+    assertThat(account2.getBalance().doubleValue()).isEqualTo(100.0);
+
+    assertEquals(thread1.getState(), Thread.State.TERMINATED);
+    assertEquals(thread2.getState(), Thread.State.TERMINATED);
+    assertEquals(thread3.getState(), Thread.State.TERMINATED);
+    assertEquals(thread4.getState(), Thread.State.TERMINATED);
   }
 
   private String transferJson(String from, String to, double amount) {

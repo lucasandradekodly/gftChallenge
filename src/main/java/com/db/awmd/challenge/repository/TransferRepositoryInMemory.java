@@ -19,7 +19,9 @@ public class TransferRepositoryInMemory implements TransferRepository {
 
     @Override
     public void createTransfer(Transfer transfer) {
-        transfer.setId(String.valueOf(new Date().getTime()));
+        Date date = new Date();
+        transfer.setId(String.valueOf(date.getTime()));
+        transfer.setDate(date);
         save(transfer);
     }
 

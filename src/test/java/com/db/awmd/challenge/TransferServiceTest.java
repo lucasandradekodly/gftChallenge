@@ -1,6 +1,7 @@
 package com.db.awmd.challenge;
 
 import com.db.awmd.challenge.domain.Account;
+import com.db.awmd.challenge.domain.Transfer;
 import com.db.awmd.challenge.domain.TransferState;
 import com.db.awmd.challenge.dto.TransferDto;
 import com.db.awmd.challenge.exception.AccountNotFoundException;
@@ -23,6 +24,9 @@ import org.mockito.Mock;
 
 import java.math.BigDecimal;
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -42,6 +46,16 @@ public class TransferServiceTest {
 
     @InjectMocks
     private TransferService testObj;
+
+    Account account1 = Account.builder()
+            .balance(BigDecimal.valueOf(100))
+            .accountId(ACCOUNT_ID1)
+            .build();
+
+    Account account2 = Account.builder()
+            .balance(BigDecimal.valueOf(100))
+            .accountId(ACCOUNT_ID2)
+            .build();
 
     @Before
     public void setup() {
@@ -84,11 +98,6 @@ public class TransferServiceTest {
                 .amount(BigDecimal.valueOf(50.0))
                 .build();
 
-        Account account1 = Account.builder()
-                .balance(BigDecimal.valueOf(100))
-                .accountId(ACCOUNT_ID1)
-                .build();
-
         when(accountsServiceMock.getAccount(ACCOUNT_ID1)).thenReturn(account1);
         when(accountsServiceMock.getAccount(ACCOUNT_ID2)).thenReturn(null);
 
@@ -105,16 +114,6 @@ public class TransferServiceTest {
                 .accountFrom(ACCOUNT_ID1)
                 .accountTo(ACCOUNT_ID2)
                 .amount(BigDecimal.valueOf(50.0))
-                .build();
-
-        Account account1 = Account.builder()
-                .balance(BigDecimal.valueOf(100))
-                .accountId(ACCOUNT_ID1)
-                .build();
-
-        Account account2 = Account.builder()
-                .balance(BigDecimal.valueOf(100))
-                .accountId(ACCOUNT_ID2)
                 .build();
 
         when(accountsServiceMock.getAccount(ACCOUNT_ID1)).thenReturn(account1);
@@ -158,16 +157,6 @@ public class TransferServiceTest {
                 .amount(BigDecimal.valueOf(50.0))
                 .build();
 
-        Account account1 = Account.builder()
-                .balance(BigDecimal.valueOf(100))
-                .accountId(ACCOUNT_ID1)
-                .build();
-
-        Account account2 = Account.builder()
-                .balance(BigDecimal.valueOf(100))
-                .accountId(ACCOUNT_ID2)
-                .build();
-
         when(accountsServiceMock.getAccount(ACCOUNT_ID1)).thenReturn(account1);
         when(accountsServiceMock.getAccount(ACCOUNT_ID2)).thenReturn(account2);
 
@@ -195,5 +184,24 @@ public class TransferServiceTest {
         );
 
         verify(notificationServiceMock, times(0)).notifyAboutTransfer(any(), any());
+    }
+
+    @Test
+    public void testingFindingPendingTransfers_shouldReturnTheFoundData() {
+        Transfer transfer1 = Transfer.builder()
+                .accountFrom(account1)
+                .accountTo(account2)
+                .amount(BigDecimal.valueOf(50.0))
+                .state(TransferState.PENDING)
+                .build();
+
+        List<Transfer> transfers = Arrays.asList(transfer1);
+        when(transferRepositoryMock.findByState(TransferState.PENDING)).thenReturn(transfers);
+
+        //act
+        List<Transfer> testResult = testObj.findPendingTransfers();
+
+        //assert
+        assertEquals(testResult, transfers);
     }
 }
