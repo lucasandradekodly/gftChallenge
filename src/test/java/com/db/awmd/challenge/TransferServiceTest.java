@@ -48,7 +48,7 @@ public class TransferServiceTest {
         testObj = new TransferService(transferRepositoryMock, accountsServiceMock, notificationServiceMock);
     }
 
-    @Test(expected=DuplicateAccountIdException.class)
+    @Test(expected = DuplicateAccountIdException.class)
     public void testingCreatingATransfer_whenToAndFromAccountsAreTheSame_shouldThrowException() {
         TransferDto transfer = TransferDto.builder()
                 .accountFrom(ACCOUNT_ID1)
@@ -61,7 +61,7 @@ public class TransferServiceTest {
         verify(notificationServiceMock, times(0)).notifyAboutTransfer(any(), any());
     }
 
-    @Test(expected=AccountNotFoundException.class)
+    @Test(expected = AccountNotFoundException.class)
     public void testingCreatingATransfer_whenTheAccountFromDoesntExist_shouldThrowException() {
         TransferDto transfer = TransferDto.builder()
                 .accountFrom(ACCOUNT_ID1)
@@ -76,7 +76,7 @@ public class TransferServiceTest {
         verify(notificationServiceMock, times(0)).notifyAboutTransfer(any(), any());
     }
 
-    @Test(expected=AccountNotFoundException.class)
+    @Test(expected = AccountNotFoundException.class)
     public void testingCreatingATransfer_whenTheAccountToDoesntExist_shouldThrowException() {
         TransferDto transfer = TransferDto.builder()
                 .accountFrom(ACCOUNT_ID1)
@@ -125,7 +125,7 @@ public class TransferServiceTest {
 
         //assert
         verify(transferRepositoryMock, times(1)).createTransfer(
-                argThat( t -> {
+                argThat(t -> {
                     assertEquals(t.getAccountFrom(), account1);
                     assertEquals(t.getAccountTo(), account2);
                     assertEquals(t.getAmount(), transfer.getAmount());
@@ -135,7 +135,7 @@ public class TransferServiceTest {
         );
 
         verify(transferRepositoryMock, times(1)).executeTransfer(
-                argThat( t -> {
+                argThat(t -> {
                     assertEquals(t.getAccountFrom(), account1);
                     assertEquals(t.getAccountTo(), account2);
                     assertEquals(t.getAmount(), transfer.getAmount());
@@ -150,7 +150,7 @@ public class TransferServiceTest {
                 .notifyAboutTransfer(account2, "Received transfer from acc-001 in the amount of 50.0");
     }
 
-    @Test(expected=TransferRejectedException.class)
+    @Test(expected = TransferRejectedException.class)
     public void testingCreatingATransfer_whenTheAccountDoesntHaveEnoughBalance_shouldThrowException() throws SQLIntegrityConstraintViolationException {
         TransferDto transfer = TransferDto.builder()
                 .accountFrom(ACCOUNT_ID1)
@@ -178,7 +178,7 @@ public class TransferServiceTest {
 
         //assert
         verify(transferRepositoryMock, times(1)).createTransfer(
-                argThat( t -> {
+                argThat(t -> {
                     assertEquals(t.getAccountFrom(), account1);
                     assertEquals(t.getAccountTo(), account2);
                     assertEquals(t.getAmount(), transfer.getAmount());
@@ -188,7 +188,7 @@ public class TransferServiceTest {
         );
 
         verify(transferRepositoryMock, times(1)).save(
-                argThat( t -> {
+                argThat(t -> {
                     assertEquals(t.getState(), TransferState.FAILED);
                     return true;
                 })

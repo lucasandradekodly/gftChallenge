@@ -1,6 +1,7 @@
 package com.db.awmd.challenge;
 
 import com.db.awmd.challenge.domain.Account;
+import com.db.awmd.challenge.dto.TransferDto;
 import com.db.awmd.challenge.service.AccountsService;
 import com.db.awmd.challenge.service.TransferService;
 import org.junit.Before;
@@ -146,6 +147,139 @@ public class TransferControllerTest {
     Account account2 = accountsService.getAccount(ACCOUNT_ID2);
     assertThat(account1.getBalance().doubleValue()).isEqualTo(100.0);
     assertThat(account2.getBalance().doubleValue()).isEqualTo(100.0);
+  }
+
+  @Test
+  public void shouldBeAbleToMake3SimultaneousTransfersBetweenDifferentAccounts_withoutDeadlocksAndWithinOneSecond() throws InterruptedException {
+    Account account1 = Account.builder()
+            .balance(BigDecimal.valueOf(100))
+            .accountId("1")
+            .build();
+
+    Account account2 = Account.builder()
+            .balance(BigDecimal.valueOf(100))
+            .accountId("2")
+            .build();
+
+    Account account3 = Account.builder()
+            .balance(BigDecimal.valueOf(100))
+            .accountId("3")
+            .build();
+
+    Account account4 = Account.builder()
+            .balance(BigDecimal.valueOf(100))
+            .accountId("4")
+            .build();
+
+    Account account5 = Account.builder()
+            .balance(BigDecimal.valueOf(100))
+            .accountId("5")
+            .build();
+
+    Account account6 = Account.builder()
+            .balance(BigDecimal.valueOf(100))
+            .accountId("6")
+            .build();
+
+    accountsService.createAccount(account1);
+    accountsService.createAccount(account2);
+    accountsService.createAccount(account3);
+    accountsService.createAccount(account4);
+    accountsService.createAccount(account5);
+    accountsService.createAccount(account6);
+
+
+    Runnable runnable1 = () -> {
+      try {
+        mockMvc.perform(post(URI).contentType(MediaType.APPLICATION_JSON)
+                .content(transferJson("1", "2", 10))).andExpect(status().isCreated());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+    Thread thread1 = new Thread(runnable1);
+
+    Runnable runnable2 = () -> {
+      try {
+        mockMvc.perform(post(URI).contentType(MediaType.APPLICATION_JSON)
+                .content(transferJson("3", "4", 10))).andExpect(status().isCreated());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+    Thread thread2 = new Thread(runnable2);
+
+    Runnable runnable3 = () -> {
+      try {
+        mockMvc.perform(post(URI).contentType(MediaType.APPLICATION_JSON)
+                .content(transferJson("5", "6", 10))).andExpect(status().isCreated());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+    Thread thread3 = new Thread(runnable3);
+
+    //act
+    thread1.start();
+    thread2.start();
+    thread3.start();
+
+    //assert
+    Thread.sleep(1000);
+
+    assertThat(account1.getBalance().doubleValue()).isEqualTo(90.0);
+    assertThat(account2.getBalance().doubleValue()).isEqualTo(110.0);
+    assertThat(account3.getBalance().doubleValue()).isEqualTo(90.0);
+    assertThat(account4.getBalance().doubleValue()).isEqualTo(110.0);
+    assertThat(account5.getBalance().doubleValue()).isEqualTo(90.0);
+    assertThat(account6.getBalance().doubleValue()).isEqualTo(110.0);
+  }
+
+  @Test
+  public void shouldBeAbleToMakeTransfersBetweenTheSameAccounts_withoutDeadlocksAndWithinOneSecond() throws InterruptedException {
+
+    Runnable runnable1 = () -> {
+      try {
+        mockMvc.perform(post(URI).contentType(MediaType.APPLICATION_JSON)
+                .content(transferJson(ACCOUNT_ID1, ACCOUNT_ID2, 10))).andExpect(status().isCreated());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+    Thread thread1 = new Thread(runnable1);
+
+    Runnable runnable2 = () -> {
+      try {
+        mockMvc.perform(post(URI).contentType(MediaType.APPLICATION_JSON)
+                .content(transferJson(ACCOUNT_ID1, ACCOUNT_ID2, 10))).andExpect(status().isCreated());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+    Thread thread2 = new Thread(runnable2);
+
+    Runnable runnable3 = () -> {
+      try {
+        mockMvc.perform(post(URI).contentType(MediaType.APPLICATION_JSON)
+                .content(transferJson(ACCOUNT_ID1, ACCOUNT_ID2, 10))).andExpect(status().isCreated());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+    Thread thread3 = new Thread(runnable3);
+
+    //act
+    thread1.start();
+    thread2.start();
+    thread3.start();
+
+    //assert
+    Thread.sleep(1000);
+
+    Account account1 = accountsService.getAccount(ACCOUNT_ID1);
+    Account account2 = accountsService.getAccount(ACCOUNT_ID2);
+    assertThat(account1.getBalance().doubleValue()).isEqualTo(70.0);
+    assertThat(account2.getBalance().doubleValue()).isEqualTo(130.0);
   }
 
   private String transferJson(String from, String to, double amount) {
